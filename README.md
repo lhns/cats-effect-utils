@@ -12,6 +12,12 @@ This project provides several utility methods for [cats-effect](https://github.c
 ### build.sbt
 
 ```sbt
+// use this snippet for cats-effect 3 and the JVM
+libraryDependencies += "de.lolhens" %% "cats-effect-utils" % "0.2.0"
+
+// use this snippet for cats-effect 3 and JS, or cross-building
+libraryDependencies += "de.lolhens" %%% "cats-effect-utils" % "0.2.0"
+
 // use this snippet for cats-effect 2 and the JVM
 libraryDependencies += "de.lolhens" %% "cats-effect-utils" % "0.0.1"
 

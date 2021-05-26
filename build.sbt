@@ -26,7 +26,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-    "de.lolhens" %%% "munit-tagless-final" % "0.0.1" % Test,
+    "de.lolhens" %%% "munit-tagless-final" % "0.1.3" % Test,
     "org.scalameta" %%% "munit" % "0.7.26" % Test,
   ),
 
@@ -70,7 +70,7 @@ lazy val core = projectMatrix.in(file("core"))
     name := "cats-effect-utils",
 
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect" % "2.5.1",
+      "org.typelevel" %% "cats-effect-std" % "3.1.1",
     ),
   )
   .jvmPlatform(scalaVersions)
