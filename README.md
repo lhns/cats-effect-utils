@@ -5,14 +5,18 @@
 [![Maven Central](https://img.shields.io/maven-central/v/de.lolhens/cats-effect-utils_2.13)](https://search.maven.org/artifact/de.lolhens/cats-effect-utils_2.13)
 [![Apache License 2.0](https://img.shields.io/github/license/LolHens/cats-effect-utils.svg?maxAge=3600)](https://www.apache.org/licenses/LICENSE-2.0)
 
-This project provides several utility methods for cats-effect.
+This project provides several utility methods for [cats-effect](https://github.com/typelevel/cats-effect).
 
 ## Usage
 
 ### build.sbt
 
 ```sbt
-libraryDependencies += "de.lolhens" %% "cats-effect-utils" % "0.0.0"
+// use this snippet for cats-effect 2 and the JVM
+libraryDependencies += "de.lolhens" %% "cats-effect-utils" % "0.0.1"
+
+// use this snippet for cats-effect 2 and JS, or cross-building
+libraryDependencies += "de.lolhens" %%% "cats-effect-utils" % "0.0.1"
 ```
 
 ## License
