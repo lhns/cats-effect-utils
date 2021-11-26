@@ -32,8 +32,6 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   testFrameworks += new TestFramework("munit.Framework"),
 
-  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-
   Compile / doc / sources := Seq.empty,
 
   publishMavenStyle := true,
@@ -51,6 +49,10 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   )).toList
 )
 
+lazy val commonSettings_scala2: SettingsDefinition = Def.settings(
+  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+)
+
 name := (core.projectRefs.head / name).value
 
 lazy val root: Project =
@@ -66,6 +68,11 @@ lazy val root: Project =
 
 lazy val core = projectMatrix.in(file("core"))
   .settings(commonSettings)
+  .customRow(
+    scalaVersions.filter(_.startsWith("2")),
+    Seq(VirtualAxis.jvm, VirtualAxis.js),
+    _.settings(commonSettings_scala2)
+  )
   .settings(
     name := "cats-effect-utils",
 
@@ -78,6 +85,11 @@ lazy val core = projectMatrix.in(file("core"))
 
 lazy val sample = projectMatrix.in(file("sample"))
   .settings(commonSettings)
+  .customRow(
+    scalaVersions.filter(_.startsWith("2")),
+    Seq(VirtualAxis.jvm, VirtualAxis.js),
+    _.settings(commonSettings_scala2)
+  )
   .settings(
     name := "cats-effect-utils-sample",
 
