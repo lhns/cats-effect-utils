@@ -1,7 +1,7 @@
 package de.lolhens.cats.effect.utils
 
 import cats.effect.kernel.syntax.all._
-import cats.effect.kernel.{Async, Deferred, Fiber, Ref}
+import cats.effect.kernel._
 import cats.syntax.all._
 import cats.{Eq, Monad}
 
@@ -9,56 +9,82 @@ import scala.concurrent.duration.Duration
 
 object CatsEffectUtils {
   implicit class CatsEffectUtilsOps[F[_], A](val self: F[A]) extends AnyVal {
-    def memoizeWithRef(ref: Ref[F, Option[Deferred[F, Either[Throwable, A]]]])
-                      (implicit F: Async[F]): F[A] =
-      F.defer {
-        lazy val lzy@Some(deferred) = Some(Deferred.unsafe[F, Either[Throwable, A]])
+    def memoizeWithRef(ref: Ref[F, Option[Deferred[F, Option[Either[Throwable, A]]]]])
+                      (implicit F: Concurrent[F]): F[A] = {
+      def eval: F[A] =
+        F.deferred[Option[Either[Throwable, A]]].flatMap { deferred =>
+          F.uncancelable { poll =>
+            ref.getAndUpdate(_.orElse(deferred.some)).flatMap {
+              case None =>
+                poll(self).guaranteeCase {
+                  case Outcome.Succeeded(fa) => fa.flatMap(e => deferred.complete(e.asRight.some).void)
+                  case Outcome.Errored(e) => deferred.complete(e.asLeft.some).void
+                  case _ =>
+                    ref.set(none) *>
+                      deferred.complete(none).void
+                }
 
-        def complete(f: F[A]): F[A] = f.attempt.flatTap(deferred.complete).rethrow
-
-        ref.getAndUpdate(_.orElse(lzy)).flatMap {
-          case Some(deferred) => deferred.get.rethrow
-          case None => complete(self)
+              case _ => get
+            }
+          }
         }
-      }
+
+      def get: F[A] =
+        ref.get.flatMap {
+          case Some(deferred) => deferred.get.flatMap {
+            case Some(result) => F.fromEither(result)
+            case None => get
+          }
+          case None => eval
+        }
+
+      get
+    }
 
     @inline
-    def memoize(implicit F: Async[F]): F[F[A]] =
-      Ref.of[F, Option[Deferred[F, Either[Throwable, A]]]](none).map(memoizeWithRef(_))
-
-    @inline
-    def memoizeUnsafe(implicit F: Async[F]): F[A] =
+    def memoizeUnsafe(implicit F: Concurrent[F], SyncF: Sync[F]): F[A] =
       memoizeWithRef(Ref.unsafe(none))
 
     def memoizeOnSuccessWithRef(ref: Ref[F, Option[Deferred[F, Option[A]]]])
-                               (implicit F: Async[F]): F[A] =
-      F.defer {
-        lazy val lzy@Some(deferred) = Some(Deferred.unsafe[F, Option[A]])
+                               (implicit F: Concurrent[F]): F[A] = {
+      def eval: F[A] =
+        F.deferred[Option[A]].flatMap { deferred =>
+          F.uncancelable { poll =>
+            ref.getAndUpdate(_.orElse(deferred.some)).flatMap {
+              case None =>
+                poll(self).guaranteeCase {
+                  case Outcome.Succeeded(fa) => fa.flatMap(e => deferred.complete(e.some).void)
+                  case _ =>
+                    ref.set(none) *>
+                      deferred.complete(none).void
+                }
 
-        def complete(f: F[A]): F[A] = f
-          .flatTap(e => deferred.complete(e.some))
-          .handleErrorWith { throwable =>
-            ref.set(none) *>
-              deferred.complete(none) *>
-              throwable.raiseError
-          }
-
-        ().tailRecM[F, A] { _ =>
-          ref.getAndUpdate(_.orElse(lzy)).flatMap {
-            case Some(deferred) => deferred.get.map(_.toRight(()))
-            case None => complete(self).map(_.asRight)
+              case _ => get
+            }
           }
         }
-      }
+
+      def get: F[A] =
+        ref.get.flatMap {
+          case Some(deferred) => deferred.get.flatMap {
+            case Some(a) => F.pure(a)
+            case None => get
+          }
+          case None => eval
+        }
+
+      get
+    }
 
     @inline
-    def memoizeOnSuccess(implicit F: Async[F]): F[F[A]] =
-      Ref.of[F, Option[Deferred[F, Option[A]]]](none).map(memoizeOnSuccessWithRef(_))
+    def memoizeOnSuccess(implicit F: Concurrent[F]): F[F[A]] =
+      F.ref[Option[Deferred[F, Option[A]]]](none).map(memoizeOnSuccessWithRef(_))
 
     @inline
-    def memoizeOnSuccessUnsafe(implicit F: Async[F]): F[A] =
+    def memoizeOnSuccessUnsafe(implicit F: Concurrent[F], SyncF: Sync[F]): F[A] =
       memoizeOnSuccessWithRef(Ref.unsafe(none))
 
+    // TODO: handle cancellation
     def flatMapOnChangeSyncWithRef[B](ref: Ref[F, Option[(A, Deferred[F, Option[B]])]])
                                      (f: A => F[B])
                                      (implicit A: Eq[A], F: Async[F]): F[Either[Fiber[F, Throwable, B], B]] =
@@ -98,7 +124,7 @@ object CatsEffectUtils {
     @inline
     def flatMapOnChangeSync[B](f: A => F[B])
                               (implicit A: Eq[A], F: Async[F]): F[F[Either[Fiber[F, Throwable, B], B]]] =
-      Ref.of[F, Option[(A, Deferred[F, Option[B]])]](none).map(flatMapOnChangeSyncWithRef[B](_)(f))
+      F.ref[Option[(A, Deferred[F, Option[B]])]](none).map(flatMapOnChangeSyncWithRef[B](_)(f))
 
     @inline
     def flatMapOnChangeSyncUnsafe[B](f: A => F[B])
@@ -126,13 +152,14 @@ object CatsEffectUtils {
     @inline
     def allowOld[B](fresh: B => Boolean = (_: Any) => true)
                    (implicit ev: A =:= Either[Fiber[F, Throwable, B], B], F: Async[F]): F[F[B]] =
-      Ref.of[F, Option[B]](none).map(allowOldWithRef[B](_)(fresh))
+      F.ref[Option[B]](none).map(allowOldWithRef[B](_)(fresh))
 
     @inline
     def allowOldUnsafe[B](fresh: B => Boolean = (_: Any) => true)
                          (implicit ev: A =:= Either[Fiber[F, Throwable, B], B], F: Async[F]): F[B] =
       allowOldWithRef[B](Ref.unsafe(none))(fresh)
 
+    // TODO: handle cancellation
     def flatMapOnChangeWithRef[B](ref: Ref[F, Option[(A, Deferred[F, Option[B]])]])
                                  (f: A => F[B])
                                  (implicit A: Eq[A], F: Async[F]): F[B] =
@@ -159,7 +186,7 @@ object CatsEffectUtils {
     @inline
     def flatMapOnChange[B](f: A => F[B])
                           (implicit A: Eq[A], F: Async[F]): F[F[B]] =
-      Ref.of[F, Option[(A, Deferred[F, Option[B]])]](none).map(flatMapOnChangeWithRef[B](_)(f))
+      F.ref[Option[(A, Deferred[F, Option[B]])]](none).map(flatMapOnChangeWithRef[B](_)(f))
 
     @inline
     def flatMapOnChange_[B](f: => F[B])
@@ -196,6 +223,7 @@ object CatsEffectUtils {
                              (implicit A: Eq[A], F: Async[F]): F[B] =
       flatMapOnChangeUnsafe[B](_ => F.delay(f))
 
+    // TODO: handle cancellation
     def cacheForWithRef(ref: Ref[F, Option[(Long, Deferred[F, Option[A]])]])
                        (duration: Duration)
                        (implicit F: Async[F]): F[A] =
@@ -222,7 +250,7 @@ object CatsEffectUtils {
     @inline
     def cacheFor(duration: Duration)
                 (implicit F: Async[F]): F[F[A]] =
-      Ref.of[F, Option[(Long, Deferred[F, Option[A]])]](none).map(cacheForWithRef(_)(duration))
+      F.ref[Option[(Long, Deferred[F, Option[A]])]](none).map(cacheForWithRef(_)(duration))
 
     @inline
     def cacheForUnsafe(duration: Duration)
