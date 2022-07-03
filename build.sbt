@@ -1,4 +1,4 @@
-lazy val scalaVersions = Seq("3.1.0", "2.13.8", "2.12.16")
+lazy val scalaVersions = Seq("3.1.3", "2.13.8", "2.12.15")
 
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
@@ -73,7 +73,7 @@ lazy val core = projectMatrix.in(file("core"))
     name := "cats-effect-utils",
 
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect-std" % "3.2.9",
+      "org.typelevel" %% "cats-effect-std" % "3.3.13",
     ),
   )
   .jvmPlatform(scalaVersions)
