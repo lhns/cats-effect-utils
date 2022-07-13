@@ -73,7 +73,7 @@ lazy val core = projectMatrix.in(file("core"))
     name := "cats-effect-utils",
 
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect-std" % "3.3.13",
+      "org.typelevel" %% "cats-effect-std" % "3.3.14",
     ),
   )
   .jvmPlatform(scalaVersions)
