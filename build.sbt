@@ -25,7 +25,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   ),
 
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.4.9" % Test,
+    "ch.qos.logback" % "logback-classic" % "1.4.13" % Test,
     "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
     "org.scalameta" %%% "munit" % "0.7.29" % Test,
   ),
@@ -85,7 +85,7 @@ lazy val sample = projectMatrix.in(file("sample"))
     name := "cats-effect-utils-sample",
 
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.4.9",
+      "ch.qos.logback" % "logback-classic" % "1.4.13",
     ),
 
     publish / skip := true,
