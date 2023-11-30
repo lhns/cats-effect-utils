@@ -1,4 +1,4 @@
-lazy val scalaVersions = Seq("3.3.0", "2.13.11", "2.12.18")
+lazy val scalaVersions = Seq("3.3.1", "2.13.11", "2.12.18")
 
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
@@ -25,7 +25,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   ),
 
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.4.9" % Test,
+    "ch.qos.logback" % "logback-classic" % "1.4.13" % Test,
     "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
     "org.scalameta" %%% "munit" % "0.7.29" % Test,
   ),
@@ -73,7 +73,7 @@ lazy val core = projectMatrix.in(file("core"))
     name := "cats-effect-utils",
 
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect-std" % "3.5.1",
+      "org.typelevel" %% "cats-effect-std" % "3.5.2",
     ),
   )
   .jvmPlatform(scalaVersions)
@@ -85,7 +85,7 @@ lazy val sample = projectMatrix.in(file("sample"))
     name := "cats-effect-utils-sample",
 
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.4.9",
+      "ch.qos.logback" % "logback-classic" % "1.4.13",
     ),
 
     publish / skip := true,
